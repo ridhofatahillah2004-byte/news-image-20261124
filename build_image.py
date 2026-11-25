@@ -5,6 +5,16 @@ world's news of Tuesday 24 November 2026, newspaper front-page style.
 Run:  python3 build_image.py
 Writes entry.png next to this script (must stay <= 1 MiB, <= 1024x1024).
 
+v2 redesign (for blind round 3):
+  - Lead illustration bigger and more dramatic: larger fireball with a
+    horizon glow, taller smoke plume, flames licking the deck, a drone
+    silhouette overhead, and a bigger ship.
+  - Stronger headline hierarchy: lead headline 46pt, red rule under each
+    kicker, a big green "+31%" stat on the Nvidia card.
+  - Fixed the Nvidia "SK hynix +20%" line that overflowed the card in v1.
+  - Bottom band loosened: slightly larger type, cleaner spacing.
+  - Same 6 stories + ticker as v1; no facts changed.
+
 Stories (all first reported on 24 Nov 2026, from world newswires):
   1. Ukraine says its drones sank a Russian warship off Libya.
   2. Jensen Huang returns as Nvidia CEO; shares surge 31%.
@@ -65,9 +75,12 @@ def draw_lines(draw, lines, x, y, fnt, fill, leading):
     return y
 
 
-def kicker(draw, x, y, text, size=19):
+def kicker(draw, x, y, text, size=19, rule=False):
     f = font(SANS_B, size)
     draw.text((x, y), text, font=f, fill=RED)
+    if rule:
+        draw.rectangle([x, y + size + 5, x + 64, y + size + 8], fill=RED)
+        return y + size + 14
     return y + size + 8
 
 
@@ -81,44 +94,91 @@ def starburst(draw, cx, cy, r_out, r_in, points, fill):
 
 
 def draw_ship_scene(draw, x, y, w, h):
-    """Flat illustration: a warship at sea with an explosion astern."""
+    """Flat illustration: a warship at sea, hit by a drone strike.
+    Bigger fireball, horizon glow, smoke plume, deck flames, drone."""
     draw.rectangle([x, y, x + w, y + h], fill=SKY)
-    # sea
     sea_y = y + int(h * 0.55)
+    # explosion centre, just above the waterline
+    ex, ey = x + int(w * 0.80), sea_y - 12
+    # warm glow on the horizon behind the explosion
+    for r, col in [(78, (255, 205, 130)), (60, (255, 175, 70)),
+                   (46, (255, 145, 30))]:
+        draw.ellipse([ex - r, ey - r, ex + r, ey + r], fill=col)
+    # sea
     draw.rectangle([x, sea_y, x + w, y + h], fill=SEA)
+    # fire glow reflected on the water
+    draw.ellipse([ex - 46, sea_y + 6, ex + 46, sea_y + 26], fill=(255, 150, 40))
     for wx in range(0, w, 46):
-        draw.arc([x + wx, sea_y + 14, x + wx + 44, sea_y + 34],
+        draw.arc([x + wx, sea_y + 16, x + wx + 44, sea_y + 36],
                  start=200, end=340, fill=(255, 255, 255), width=3)
     for wx in range(23, w, 46):
-        draw.arc([x + wx, sea_y + 44, x + wx + 44, sea_y + 62],
+        draw.arc([x + wx, sea_y + 48, x + wx + 44, sea_y + 66],
                  start=200, end=340, fill=(160, 200, 225), width=3)
-    # explosion behind the ship (right side)
-    ex, ey = x + int(w * 0.80), sea_y - 26
-    starburst(draw, ex, ey, 52, 26, 10, (255, 140, 0))
-    starburst(draw, ex, ey, 34, 17, 10, (255, 205, 0))
-    draw.ellipse([ex - 13, ey - 13, ex + 13, ey + 13], fill=(200, 30, 20))
-    # smoke
-    for sx, sy, sr in [(ex - 46, ey - 44, 13), (ex - 26, ey - 58, 16),
-                       (ex - 2, ey - 62, 14)]:
-        draw.ellipse([sx - sr, sy - sr, sx + sr, sy + sr], fill=(120, 120, 120))
-    # ship hull
-    hx, hy = x + 30, sea_y - 6
-    hull = [(hx, hy), (hx + 210, hy), (hx + 238, hy + 26),
-            (hx + 226, hy + 34), (hx + 12, hy + 34), (hx - 6, hy + 22)]
+    # explosion (bigger than v1)
+    starburst(draw, ex, ey, 68, 32, 10, (255, 140, 0))
+    starburst(draw, ex, ey, 46, 22, 10, (255, 205, 0))
+    draw.ellipse([ex - 17, ey - 17, ex + 17, ey + 17], fill=(200, 30, 20))
+    # smoke plume
+    for sx, sy, sr, col in [(ex - 62, ey - 44, 15, (110, 110, 110)),
+                            (ex - 40, ey - 58, 18, (90, 90, 90)),
+                            (ex - 12, ey - 62, 16, (110, 110, 110)),
+                            (ex + 10, ey - 50, 13, (90, 90, 90)),
+                            (ex - 76, ey - 26, 12, (110, 110, 110))]:
+        draw.ellipse([sx - sr, sy - sr, sx + sr, sy + sr], fill=col)
+    # drone overhead (upper left) — the strike came from drones
+    dx, dy = x + 64, y + 20
+    draw.rectangle([dx - 9, dy - 4, dx + 9, dy + 4], fill=(45, 45, 45))
+    for ox, oy in [(-18, -8), (18, -8), (-18, 8), (18, 8)]:
+        draw.line([dx, dy, dx + ox, dy + oy], fill=(45, 45, 45), width=2)
+        draw.ellipse([dx + ox - 6, dy + oy - 2, dx + ox + 6, dy + oy + 2],
+                     fill=(45, 45, 45))
+    draw.line([dx - 5, dy + 4, dx - 5, dy + 10], fill=(45, 45, 45), width=2)
+    draw.line([dx + 5, dy + 4, dx + 5, dy + 10], fill=(45, 45, 45), width=2)
+    # ship hull (bigger than v1)
+    hx, hy = x + 24, sea_y - 8
+    hull = [(hx, hy), (hx + 272, hy), (hx + 306, hy + 30),
+            (hx + 292, hy + 40), (hx + 14, hy + 40), (hx - 8, hy + 26)]
     draw.polygon(hull, fill=(28, 43, 54))
-    draw.rectangle([hx + 6, hy + 26, hx + 232, hy + 30], fill=(255, 255, 255))
+    draw.rectangle([hx + 6, hy + 30, hx + 296, hy + 34], fill=(255, 255, 255))
     # superstructure
-    draw.rectangle([hx + 44, hy - 34, hx + 150, hy], fill=(230, 232, 235))
-    draw.rectangle([hx + 60, hy - 52, hx + 120, hy - 34], fill=(200, 205, 210))
+    draw.rectangle([hx + 56, hy - 40, hx + 190, hy], fill=(230, 232, 235))
+    draw.rectangle([hx + 76, hy - 62, hx + 150, hy - 40], fill=(200, 205, 210))
     # mast + flag
-    draw.line([hx + 168, hy - 34, hx + 168, hy - 56], fill=(28, 43, 54), width=4)
-    draw.polygon([(hx + 168, hy - 56), (hx + 184, hy - 51),
-                  (hx + 168, hy - 46)], fill=(178, 34, 34))
+    draw.line([hx + 216, hy - 40, hx + 216, hy - 66], fill=(28, 43, 54), width=4)
+    draw.polygon([(hx + 216, hy - 66), (hx + 234, hy - 60),
+                  (hx + 216, hy - 54)], fill=(178, 34, 34))
     # funnel
-    draw.rectangle([hx + 128, hy - 46, hx + 146, hy - 34], fill=(178, 34, 34))
+    draw.rectangle([hx + 164, hy - 54, hx + 186, hy - 40], fill=(178, 34, 34))
     # portholes
-    for px in range(hx + 20, hx + 200, 26):
-        draw.ellipse([px, hy + 12, px + 7, hy + 19], fill=(250, 225, 150))
+    for px in range(hx + 26, hx + 276, 30):
+        draw.ellipse([px, hy + 14, px + 8, hy + 22], fill=(250, 225, 150))
+    # flames licking the deck near the stern
+    fx, fy = hx + 252, hy - 6
+    starburst(draw, fx, fy, 24, 11, 8, (255, 140, 0))
+    starburst(draw, fx, fy, 15, 7, 8, (255, 205, 0))
+    # splash at the bow
+    draw.arc([hx + 296, sea_y + 18, hx + 340, sea_y + 44],
+             start=200, end=340, fill=(255, 255, 255), width=3)
+
+
+def draw_flame(draw, cx, cy, s):
+    """Small flame icon (orange outer, yellow inner)."""
+    outer = [(cx, cy - s / 2), (cx + s * 0.30, cy - s * 0.10),
+             (cx + s * 0.42, cy + s * 0.12), (cx + s * 0.28, cy + s * 0.38),
+             (cx + s * 0.14, cy + s * 0.50), (cx, cy + s * 0.50),
+             (cx - s * 0.14, cy + s * 0.50), (cx - s * 0.28, cy + s * 0.38),
+             (cx - s * 0.42, cy + s * 0.12), (cx - s * 0.30, cy - s * 0.10)]
+    draw.polygon(outer, fill=(255, 140, 0))
+    k = 0.55
+    inner = [(cx, cy - s * k / 2 + s * 0.12),
+             (cx + s * k * 0.30, cy - s * k * 0.10 + s * 0.12),
+             (cx + s * k * 0.42, cy + s * k * 0.12 + s * 0.12),
+             (cx + s * k * 0.28, cy + s * k * 0.38 + s * 0.12),
+             (cx, cy + s * k * 0.50 + s * 0.12),
+             (cx - s * k * 0.28, cy + s * k * 0.38 + s * 0.12),
+             (cx - s * k * 0.42, cy + s * k * 0.12 + s * 0.12),
+             (cx - s * k * 0.30, cy - s * k * 0.10 + s * 0.12)]
+    draw.polygon(inner, fill=(255, 205, 0))
 
 
 def draw_globe(draw, x, y, s):
@@ -156,82 +216,90 @@ def main():
            font=f_date, fill=GOLD)
 
     # ---- lead story ----
-    lx, ly, lw, lh = 36, 146, 612, 412
+    lx, ly, lw, lh = 36, 146, 612, 426
     card(d, lx, ly, lw, lh)
-    y = kicker(d, lx + 24, ly + 20, "LEAD STORY  —  UKRAINE WAR SPILLS INTO THE MED")
-    f_head = font(SERIF_B, 40)
+    y = kicker(d, lx + 24, ly + 18, "LEAD STORY  —  UKRAINE WAR SPILLS INTO THE MED",
+               rule=True)
+    f_head = font(SERIF_B, 42)
     lines = wrap(d, "Ukraine sinks Russian warship off Libya", f_head, lw - 48)
-    y = draw_lines(d, lines, lx + 24, y, f_head, INK, 50)
-    draw_ship_scene(d, lx + 36, y + 10, lw - 72, 160)
-    f_body = font(SANS, 22)
+    y = draw_lines(d, lines, lx + 24, y + 7, f_head, INK, 52)
+    draw_ship_scene(d, lx + 36, y + 10, lw - 72, 170)
+    f_body = font(SANS, 20)
     sub = ("Kyiv says its drones struck Russian naval forces far from the "
            "front line — opening a new front in the Mediterranean.")
-    draw_lines(d, wrap(d, sub, f_body, lw - 48), lx + 24, y + 182,
-               f_body, MUTED, 29)
+    draw_lines(d, wrap(d, sub, f_body, lw - 48), lx + 24, y + 188,
+               f_body, MUTED, 25)
 
     # ---- right column, card A: Nvidia ----
     rx, rw = 672, 316
-    ax, ay, ah = rx, 146, 204
+    ax, ay, ah = rx, 146, 210
     card(d, ax, ay, rw, ah)
-    y = kicker(d, ax + 20, ay + 16, "TECH  ·  MARKETS")
+    y = kicker(d, ax + 20, ay + 14, "TECH  ·  MARKETS", rule=True)
     f_h2 = font(SERIF_B, 30)
     lines = wrap(d, "Huang is back at Nvidia", f_h2, rw - 40)
-    y = draw_lines(d, lines, ax + 20, y, f_h2, INK, 36)
-    f_s = font(SANS, 20)
-    y = draw_lines(d, wrap(d, "Shares surge 31% as the Trump-backed "
-                          "CEO returns.", f_s, rw - 40),
-                   ax + 20, y + 4, f_s, MUTED, 26)
-    d.rectangle([ax + 20, ay + ah - 28, ax + 32, ay + ah - 16], fill=GREEN)
-    d.text((ax + 40, ay + ah - 30), "SK hynix +20% on the news",
+    y = draw_lines(d, lines, ax + 20, y + 5, f_h2, INK, 35)
+    # big green stat: +31% shares surge
+    f_stat = font(SANS_B, 34)
+    d.text((ax + 20, y + 6), "+31%", font=f_stat, fill=GREEN)
+    sx = ax + 20 + d.textlength("+31%", font=f_stat) + 10
+    d.text((sx, y + 16), "shares surge", font=font(SANS, 20), fill=MUTED)
+    y = y + 6 + 34
+    draw_lines(d, wrap(d, "Trump-backed CEO returns.",
+                   font(SANS, 19), rw - 40),
+               ax + 20, y + 2, font(SANS, 19), MUTED, 24)
+    d.rectangle([ax + 20, ay + ah - 22, ax + 32, ay + ah - 10], fill=GREEN)
+    d.text((ax + 40, ay + ah - 24), "SK hynix +20%",
            font=font(SANS_B, 17), fill=INK)
 
     # ---- right column, card B: Indonesia fire ----
-    bx, by, bh = rx, 374, 184
+    bx, by, bh = rx, 378, 194
     card(d, bx, by, rw, bh)
-    y = kicker(d, bx + 20, by + 16, "INDONESIA")
+    y = kicker(d, bx + 20, by + 16, "INDONESIA", rule=True)
+    draw_flame(d, bx + rw - 36, by + 30, 30)
     f_h2b = font(SERIF_B, 28)
     lines = wrap(d, "Candy factory fire kills 24", f_h2b, rw - 40)
-    y = draw_lines(d, lines, bx + 20, y, f_h2b, INK, 34)
+    y = draw_lines(d, lines, bx + 20, y + 5, f_h2b, INK, 34)
+    f_s = font(SANS, 20)
     draw_lines(d, wrap(d, "Blaze rips through the plant; rescue "
                       "under way.", f_s, rw - 40),
-               bx + 20, y + 4, f_s, MUTED, 26)
+               bx + 20, y + 6, f_s, MUTED, 26)
 
     # ---- middle band: COP31 ----
-    mx, my, mw, mh = 36, 582, 952, 172
+    mx, my, mw, mh = 36, 596, 952, 164
     card(d, mx, my, mw, mh)
     draw_globe(d, mx + 22, my + 26, 120)
     tx = mx + 168
-    y = kicker(d, tx, my + 22, "CLIMATE  —  COP31, TÜRKIYE")
-    f_h3 = font(SERIF_B, 34)
+    y = kicker(d, tx, my + 22, "CLIMATE  —  COP31, TÜRKIYE", rule=True)
+    f_h3 = font(SERIF_B, 36)
     lines = wrap(d, "COP31 climate talks stall", f_h3, mw - 220)
-    y = draw_lines(d, lines, tx, y, f_h3, INK, 40)
-    y = draw_lines(d, wrap(d, "Nations split over fossil fuels and finance "
-                          "for developing states, as Saudi Arabia is blamed "
-                          "for the breakdown.", f_body, mw - 220),
-                   tx, y + 4, f_body, MUTED, 29)
+    y = draw_lines(d, lines, tx, y + 5, f_h3, INK, 42)
+    draw_lines(d, wrap(d, "Nations split over fossil fuels and finance "
+                      "for developing states, as Saudi Arabia is blamed "
+                      "for the breakdown.", font(SANS, 22), mw - 220),
+               tx, y + 4, font(SANS, 22), MUTED, 29)
 
     # ---- trade + security band ----
-    byy, bhh = 778, 130
-    f_h4 = font(SERIF_B, 23)
+    byy, bhh = 784, 126
+    f_h4 = font(SERIF_B, 24)
     f_sub = font(SANS, 18)
     # left: trade
     card(d, 36, byy, 464, bhh)
-    y = kicker(d, 56, byy + 14, "TRADE", size=18)
+    y = kicker(d, 56, byy + 12, "TRADE", size=18)
     lines = wrap(d, "Trump seals Japan & Indonesia deals", f_h4, 424)
-    y = draw_lines(d, lines, 56, y, f_h4, INK, 28)
+    y = draw_lines(d, lines, 56, y + 4, f_h4, INK, 29)
     draw_lines(d, wrap(d, "EU threatens $84bn tariff retaliation.",
                    f_sub, 424), 56, y + 4, f_sub, MUTED, 23)
     # right: security
     card(d, 524, byy, 464, bhh)
-    y = kicker(d, 544, byy + 14, "SECURITY", size=18)
+    y = kicker(d, 544, byy + 12, "SECURITY", size=18)
     lines = wrap(d, "Seoul scrambles jets", f_h4, 424)
-    y = draw_lines(d, lines, 544, y, f_h4, INK, 28)
+    y = draw_lines(d, lines, 544, y + 4, f_h4, INK, 29)
     draw_lines(d, wrap(d, "Russian military planes approach South "
                        "Korean airspace.", f_sub, 424),
                544, y + 4, f_sub, MUTED, 23)
 
     # ---- ticker ----
-    d.rectangle([36, 920, 988, 968], fill=NAVY)
+    d.rectangle([36, 922, 988, 968], fill=NAVY)
     tick = ("ALSO: Himalayan flood kills 4 · Bangladesh vaccinates 50m "
             "children · UN chief urges AI rules")
     size = 20
